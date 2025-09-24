@@ -73,7 +73,10 @@ class NanocatFrame(wx.Frame):
         username = dialog.Value
         dialog.Destroy()
 
-        self.client = NanocatClient(username=username)
+        if len(sys.argv) >= 2:
+            self.client = NanocatClient(address=sys.argv[1], username=username)
+        else:
+            self.client = NanocatClient(username=username)
         for message in self.client.initial_messages[-200:]:
             self.add_message(message)
         wx.CallAfter(lambda: self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN))
