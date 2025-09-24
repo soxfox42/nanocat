@@ -130,7 +130,6 @@ class NanocatClient:
         self._last_id = self.socket.read_int_line()
 
     def _send_message(self, message):
-        message = f"{self.username}: {message}"
         self.socket.send(Message.send(message))
         id = self.socket.read_int_line()
         if id == self._last_id + 1:
@@ -141,6 +140,15 @@ class NanocatClient:
             self._fetch_new_messages()
 
     def send_message(self, message):
+        message = f"{self.username}: {message}"
+        self._send_queue.put(message)
+    
+    def send_action(self, action):
+        message = f"{self.username} {action}"
+        self._send_queue.put(message)
+
+    def send_motd(self, action):
+        message = f"MOTD {action}"
         self._send_queue.put(message)
 
     def receive_messages(self):
