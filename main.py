@@ -1,11 +1,16 @@
 from client import NanocatClient
 from pathlib import Path
+import re
 import sys
 import wx
 import wx.richtext
 
+from sixel import Sixel
+
 
 POLL_TIME_MS = 100
+
+SIXEL_REGEX = re.compile(r"\\\(([^)]+)\)")
 
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     bundle_dir = Path(sys._MEIPASS)
@@ -102,14 +107,29 @@ class NanocatFrame(wx.Frame):
             for c in nick:
                 nick_sum *= 31
                 nick_sum += ord(c)
-            self.nick_colours[nick] = hsv_to_rgb(nick_sum, 0.5, 0.6)
+            self.nick_colours[nick] = hsv_to_rgb(nick_sum, 0.5, 0.8)
         return self.nick_colours[nick]
+
+    def write_text_sixel(self, rich_text, text):
+        i = 0
+        for match in SIXEL_REGEX.finditer(text):
+            start, end = match.span()
+            if start != i:
+                rich_text.WriteText(text[i:start])
+            i = end
+            try:
+                image = Sixel(match[1]).to_wx_image()
+                rich_text.WriteImage(image)
+            except ValueError:
+                rich_text.WriteText("[invalid sixel]")
+        rich_text.WriteText(text[i:])
 
     def add_message(self, message):
         if message.startswith("MOTD "):
             self.show_motd(message[5:])
             return
 
+        self.rich_text.SetInsertionPointEnd()
         at_end = self.rich_text.IsPositionVisible(-1)
 
         if ":" in message:
@@ -117,11 +137,11 @@ class NanocatFrame(wx.Frame):
             self.rich_text.BeginBold()
             if username != self.client.username:
                 self.rich_text.BeginTextColour(self.get_nick_colour(username))
-            self.rich_text.WriteText(username + ":")
+            self.write_text_sixel(self.rich_text, username + ":")
             self.rich_text.EndAllStyles()
         else:
             self.rich_text.BeginItalic()
-        self.rich_text.WriteText(message + "\n")
+        self.write_text_sixel(self.rich_text, message + "\n")
         self.rich_text.EndAllStyles()
 
         if at_end:

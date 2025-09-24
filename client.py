@@ -38,12 +38,15 @@ class BufferedSocket(socket.socket):
             return line.decode(errors="replace")
         except ValueError:
             if retry == 0:
-                raise
+                return ""
             self._buffer += self.recv(8192)
             return self.read_line(retry=retry - 1)
 
     def read_int_line(self):
-        return int(self.read_line())
+        try:
+            return int(self.read_line())
+        except ValueError:
+            return 0
 
 
 class NanocatClient:
@@ -88,7 +91,7 @@ class NanocatClient:
             for message in self._message_log:
                 f.write(message + "\n")
             f.write(str(self._last_id) + "\n")
-    
+
     def _connect(self, host, port):
         self.socket = BufferedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
@@ -142,7 +145,7 @@ class NanocatClient:
     def send_message(self, message):
         message = f"{self.username}: {message}"
         self._send_queue.put(message)
-    
+
     def send_action(self, action):
         message = f"{self.username} {action}"
         self._send_queue.put(message)
