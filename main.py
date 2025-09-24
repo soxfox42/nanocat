@@ -3,7 +3,7 @@ import wx
 import wx.richtext
 
 
-POLL_TIME_MS = 5000
+POLL_TIME_MS = 100
 
 
 class NanocatFrame(wx.Frame):
@@ -40,8 +40,6 @@ class NanocatFrame(wx.Frame):
         dialog.Destroy()
 
         self.client = NanocatClient(username=username)
-        for message in self.client.messages:
-            self.add_message(message)
 
         self.poll_timer = wx.Timer()
         self.poll_timer.Bind(wx.EVT_TIMER, self.poll)
@@ -51,7 +49,7 @@ class NanocatFrame(wx.Frame):
         self.text_entry.SetFocus()
 
     def poll(self, _):
-        for message in self.client.check_for_messages():
+        for message in self.client.receive_messages():
             self.add_message(message)
 
     def add_message(self, message):
@@ -61,15 +59,14 @@ class NanocatFrame(wx.Frame):
         range = self.rich_text.GetScrollRange(wx.VERTICAL)
         if range - (pos + thumb) < 15:
             self.rich_text.ScrollLines(10)
-    
+
     def send_message(self, _):
         message = self.text_entry.Value
         if not message:
             return
         self.text_entry.Value = ""
-        for message in self.client.send_message(message):
-            self.add_message(message)
-    
+        self.client.send_message(message)
+
     def quit(self, _):
         self.client.quit()
         self.poll_timer.Stop()
