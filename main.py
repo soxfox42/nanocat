@@ -1,9 +1,16 @@
 from client import NanocatClient
+from pathlib import Path
+import sys
 import wx
 import wx.richtext
 
 
 POLL_TIME_MS = 100
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    bundle_dir = Path(sys._MEIPASS)
+else:
+    bundle_dir = Path(__file__).parent
 
 
 # https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB
@@ -31,8 +38,9 @@ def hsv_to_rgb(h, s, v):
 class NanocatFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(title="Nanocat", size=(800, 600), *args, **kwargs)
-        self.SetIcon(wx.Icon("icon.png"))
+        self.SetIcon(wx.Icon(str(bundle_dir / "icon.png")))
 
+        self.initialised = False
         self.nick_colours = {}
 
         panel = wx.Panel(self)
@@ -66,26 +74,17 @@ class NanocatFrame(wx.Frame):
         dialog.Destroy()
 
         self.client = NanocatClient(username=username)
-        filtered_messages = [
-            message
-            for message in self.client.initial_messages
-            if not message.startswith("MOTD ")
-        ]
-        for message in filtered_messages[-200:]:
+        for message in self.client.initial_messages[-200:]:
             self.add_message(message)
-        self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN)
-
-        motds = [
-            message
-            for message in self.client.initial_messages
-            if message.startswith("MOTD ")
-        ]
-        motd = motds[-1][5:]
-        self.show_motd(motd)
+        wx.CallAfter(lambda: self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN))
 
         self.poll_timer = wx.Timer()
         self.poll_timer.Bind(wx.EVT_TIMER, self.poll)
         self.poll_timer.Start(POLL_TIME_MS)
+
+        self.text_entry.SetFocus()
+
+        self.initialised = True
 
     def focus_text_entry(self, _):
         self.text_entry.SetFocus()
@@ -95,8 +94,6 @@ class NanocatFrame(wx.Frame):
             self.add_message(message)
 
     def get_nick_colour(self, nick):
-        if nick == self.client.username:
-            return (0, 0, 0)
         if nick not in self.nick_colours:
             nick_sum = 0
             for c in nick:
@@ -115,7 +112,8 @@ class NanocatFrame(wx.Frame):
         if ":" in message:
             username, message = message.split(":", 1)
             self.rich_text.BeginBold()
-            self.rich_text.BeginTextColour(self.get_nick_colour(username))
+            if username != self.client.username:
+                self.rich_text.BeginTextColour(self.get_nick_colour(username))
             self.rich_text.WriteText(username + ":")
             self.rich_text.EndAllStyles()
         else:
@@ -153,5 +151,6 @@ class NanocatFrame(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = NanocatFrame(None)
-    frame.Show()
-    app.MainLoop()
+    if frame.initialised:
+        frame.Show()
+        app.MainLoop()

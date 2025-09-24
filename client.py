@@ -35,7 +35,7 @@ class BufferedSocket(socket.socket):
             pos = self._buffer.index(b"\n")
             line = self._buffer[:pos]
             self._buffer = self._buffer[pos + 1 :]
-            return line.decode()
+            return line.decode(errors="replace")
         except ValueError:
             if retry == 0:
                 raise
