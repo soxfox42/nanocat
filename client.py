@@ -10,10 +10,6 @@ POLL_TIME_MS = 5000
 
 class Message:
     @staticmethod
-    def last(n):
-        return f"LAST {n}\n".encode()
-
-    @staticmethod
     def poll(n):
         return f"POLL {n}\n".encode()
 
@@ -25,6 +21,7 @@ class Message:
     def send(msg):
         return f"SEND {msg}\n".encode()
 
+    hist = b"HIST\n"
     quit = b"QUIT\n"
 
 
@@ -51,7 +48,6 @@ class BufferedSocket(socket.socket):
 
 class NanocatClient:
     def __init__(self, address=DEFAULT_ADDRESS, username="NanocatUser"):
-        self._last_id = 0
         self.username = username
 
         self._send_queue = queue.Queue()
@@ -66,15 +62,38 @@ class NanocatClient:
         port = int(port)
         self._connect(host, port)
 
+        self._last_id = 0
+        self._message_log = []
+        self._load_message_log(address)
+
         self._send_thread.start()
         self._receive_thread.start()
 
+    def _load_message_log(self, address):
+        self._log_filename = address.replace(":", "_") + ".chat"
+        try:
+            with open(self._log_filename) as f:
+                self._message_log = [l[:-1] for l in f]
+            self._last_id = int(self._message_log.pop())
+            self._fetch_new_messages()
+        except OSError:
+            # No log, let's fetch the full history
+            self._fetch_all_messages()
+        self.initial_messages = self._message_log[:]
+        with self._receive_queue.mutex:
+            self._receive_queue.queue.clear()
+
+    def _save_message_log(self):
+        with open(self._log_filename, "w") as f:
+            for message in self._message_log:
+                f.write(message + "\n")
+            f.write(str(self._last_id) + "\n")
+    
     def _connect(self, host, port):
         self.socket = BufferedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
 
     def _run_receive_thread(self):
-        self._fetch_last_messages()
         while True:
             with self._lock:
                 if self._poll():
@@ -92,18 +111,22 @@ class NanocatClient:
         count = self.socket.read_int_line()
         return count != 0
 
-    def _fetch_last_messages(self, n=50):
-        self.socket.send(Message.last(n))
+    def _fetch_all_messages(self):
+        self.socket.send(Message.hist)
         count = self.socket.read_int_line()
         for _ in range(count):
-            self._receive_queue.put(self.socket.read_line())
+            message = self.socket.read_line()
+            self._receive_queue.put(message)
+            self._message_log.append(message)
         self._last_id = self.socket.read_int_line()
 
     def _fetch_new_messages(self):
         self.socket.send(Message.skip(self._last_id))
         count = self.socket.read_int_line()
         for _ in range(count):
-            self._receive_queue.put(self.socket.read_line())
+            message = self.socket.read_line()
+            self._receive_queue.put(message)
+            self._message_log.append(message)
         self._last_id = self.socket.read_int_line()
 
     def _send_message(self, message):
@@ -112,10 +135,10 @@ class NanocatClient:
         id = self.socket.read_int_line()
         if id == self._last_id + 1:
             self._receive_queue.put(message)
+            self._message_log.append(message)
             self._last_id = id
-            return [message]
         else:
-            return self._fetch_new_messages()
+            self._fetch_new_messages()
 
     def send_message(self, message):
         self._send_queue.put(message)
@@ -130,6 +153,7 @@ class NanocatClient:
         return messages
 
     def quit(self):
+        self._save_message_log()
         try:
             self.socket.send(Message.quit)
         except ConnectionAbortedError:

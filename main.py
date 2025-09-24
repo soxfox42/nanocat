@@ -40,6 +40,8 @@ class NanocatFrame(wx.Frame):
         dialog.Destroy()
 
         self.client = NanocatClient(username=username)
+        self.rich_text.AppendText("\n".join(self.client.initial_messages) + "\n")
+        self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN)
 
         self.poll_timer = wx.Timer()
         self.poll_timer.Bind(wx.EVT_TIMER, self.poll)
@@ -53,12 +55,10 @@ class NanocatFrame(wx.Frame):
             self.add_message(message)
 
     def add_message(self, message):
+        at_end = self.rich_text.IsPositionVisible(-1)
         self.rich_text.AppendText(message + "\n")
-        pos = self.rich_text.GetScrollPos(wx.VERTICAL)
-        thumb = self.rich_text.GetScrollThumb(wx.VERTICAL)
-        range = self.rich_text.GetScrollRange(wx.VERTICAL)
-        if range - (pos + thumb) < 15:
-            self.rich_text.ScrollLines(10)
+        if at_end:
+            self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN)
 
     def send_message(self, _):
         message = self.text_entry.Value
