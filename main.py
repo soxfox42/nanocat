@@ -6,10 +6,34 @@ import wx.richtext
 POLL_TIME_MS = 100
 
 
+# https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB
+def hsv_to_rgb(h, s, v):
+    h %= 360
+    h /= 60
+    c = v * s
+    x = c * (1 - abs(h % 2 - 1))
+    m = v - c
+    if h < 1:
+        r, g, b = c, x, 0
+    elif h < 2:
+        r, g, b = x, c, 0
+    elif h < 3:
+        r, g, b = 0, c, x
+    elif h < 4:
+        r, g, b = 0, x, c
+    elif h < 5:
+        r, g, b = x, 0, c
+    elif h < 6:
+        r, g, b = c, 0, x
+    return int((r + m) * 255), int((g + m) * 255), int((b + m) * 255)
+
+
 class NanocatFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(title="Nanocat", size=(800, 600), *args, **kwargs)
         self.SetIcon(wx.Icon("icon.png"))
+
+        self.nick_colours = {}
 
         panel = wx.Panel(self)
         self.motd_label = wx.StaticText(panel, label="MOTD: none yet")
@@ -42,11 +66,20 @@ class NanocatFrame(wx.Frame):
         dialog.Destroy()
 
         self.client = NanocatClient(username=username)
-        filtered_messages = [message for message in self.client.initial_messages if not message.startswith("MOTD ")]
-        self.rich_text.AppendText("\n".join(filtered_messages) + "\n")
+        filtered_messages = [
+            message
+            for message in self.client.initial_messages
+            if not message.startswith("MOTD ")
+        ]
+        for message in filtered_messages[-200:]:
+            self.add_message(message)
         self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN)
 
-        motds = [message for message in self.client.initial_messages if message.startswith("MOTD ")]
+        motds = [
+            message
+            for message in self.client.initial_messages
+            if message.startswith("MOTD ")
+        ]
         motd = motds[-1][5:]
         self.show_motd(motd)
 
@@ -61,12 +94,35 @@ class NanocatFrame(wx.Frame):
         for message in self.client.receive_messages():
             self.add_message(message)
 
+    def get_nick_colour(self, nick):
+        if nick == self.client.username:
+            return (0, 0, 0)
+        if nick not in self.nick_colours:
+            nick_sum = 0
+            for c in nick:
+                nick_sum *= 31
+                nick_sum += ord(c)
+            self.nick_colours[nick] = hsv_to_rgb(nick_sum, 0.5, 0.6)
+        return self.nick_colours[nick]
+
     def add_message(self, message):
         if message.startswith("MOTD "):
             self.show_motd(message[5:])
             return
+
         at_end = self.rich_text.IsPositionVisible(-1)
-        self.rich_text.AppendText(message + "\n")
+
+        if ":" in message:
+            username, message = message.split(":", 1)
+            self.rich_text.BeginBold()
+            self.rich_text.BeginTextColour(self.get_nick_colour(username))
+            self.rich_text.WriteText(username + ":")
+            self.rich_text.EndAllStyles()
+        else:
+            self.rich_text.BeginItalic()
+        self.rich_text.WriteText(message + "\n")
+        self.rich_text.EndAllStyles()
+
         if at_end:
             self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN)
 
@@ -84,7 +140,7 @@ class NanocatFrame(wx.Frame):
             self.client.send_motd(motd)
         else:
             self.client.send_message(message)
-    
+
     def show_motd(self, motd):
         self.motd_label.Label = f"MOTD: {motd}"
 
