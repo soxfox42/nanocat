@@ -49,7 +49,7 @@ class NanocatFrame(wx.Frame):
         self.nick_colours = {}
 
         panel = wx.Panel(self)
-        self.motd_label = wx.StaticText(panel, label="MOTD: none yet")
+        self.motd_label = wx.StaticText(panel, label="")
         self.rich_text = wx.richtext.RichTextCtrl(panel, style=wx.richtext.RE_READONLY)
         self.text_entry = wx.TextCtrl(panel, style=wx.TE_PROCESS_ENTER)
         self.send_button = wx.Button(panel, label="Send")
@@ -77,6 +77,7 @@ class NanocatFrame(wx.Frame):
             return
         username = dialog.Value
         dialog.Destroy()
+        self.SetTitle(f"Nanocat - {username}")
 
         if len(sys.argv) >= 2:
             self.client = NanocatClient(address=sys.argv[1], username=username)
@@ -163,7 +164,7 @@ class NanocatFrame(wx.Frame):
             self.client.send_message(message)
 
     def show_motd(self, motd):
-        self.motd_label.Label = f"MOTD: {motd}"
+        self.motd_label.Label = motd
 
     def quit(self, _):
         self.client.quit()

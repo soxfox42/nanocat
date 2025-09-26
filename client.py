@@ -167,5 +167,5 @@ class NanocatClient:
         self._save_message_log()
         try:
             self.socket.send(Message.quit)
-        except ConnectionAbortedError | ConnectionResetError:
+        except (ConnectionAbortedError, ConnectionResetError):
             pass  # Expected
