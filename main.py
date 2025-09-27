@@ -12,7 +12,7 @@ POLL_TIME_MS = 100
 
 SIXEL_REGEX = re.compile(r"\\\(([^)]+)\)")
 
-if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     bundle_dir = Path(sys._MEIPASS)
 else:
     bundle_dir = Path(__file__).parent
@@ -85,7 +85,11 @@ class NanocatFrame(wx.Frame):
             self.client = NanocatClient(username=username)
         for message in self.client.initial_messages[-200:]:
             self.add_message(message)
-        wx.CallAfter(lambda: self.rich_text.ScrollIntoView(self.rich_text.CaretPosition, wx.WXK_PAGEDOWN))
+        wx.CallAfter(
+            lambda: self.rich_text.ScrollIntoView(
+                self.rich_text.CaretPosition, wx.WXK_PAGEDOWN
+            )
+        )
 
         self.poll_timer = wx.Timer()
         self.poll_timer.Bind(wx.EVT_TIMER, self.poll)

@@ -75,8 +75,8 @@ class NanocatClient:
     def _load_message_log(self, address):
         self._log_filename = address.replace(":", "_") + ".chat"
         try:
-            with open(self._log_filename) as f:
-                self._message_log = [l[:-1] for l in f]
+            with open(self._log_filename) as file:
+                self._message_log = [line[:-1] for line in file]
             self._last_id = int(self._message_log.pop())
             self._fetch_new_messages()
         except OSError:
@@ -87,10 +87,10 @@ class NanocatClient:
             self._receive_queue.queue.clear()
 
     def _save_message_log(self):
-        with open(self._log_filename, "w") as f:
+        with open(self._log_filename, "w") as file:
             for message in self._message_log:
-                f.write(message + "\n")
-            f.write(str(self._last_id) + "\n")
+                file.write(message + "\n")
+            file.write(str(self._last_id) + "\n")
 
     def _connect(self, host, port):
         self.socket = BufferedSocket(socket.AF_INET, socket.SOCK_STREAM)
