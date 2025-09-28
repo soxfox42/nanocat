@@ -108,7 +108,7 @@ class NanocatWaitClient:
                 self._send_message(message)
 
     def _fetch_all_messages(self):
-        self.socket.send(Message.hist)
+        self.socket.sendall(Message.hist)
         count = self.socket.read_int_line()
         for _ in range(count):
             message = self.socket.read_line()
@@ -118,9 +118,9 @@ class NanocatWaitClient:
 
     def _fetch_new_messages(self, wait=False):
         if wait:
-            self.socket.send(Message.wait(self._last_id))
+            self.socket.sendall(Message.wait(self._last_id))
         else:
-            self.socket.send(Message.skip(self._last_id))
+            self.socket.sendall(Message.skip(self._last_id))
         count = self.socket.read_int_line()
         for _ in range(count):
             message = self.socket.read_line()
@@ -129,7 +129,7 @@ class NanocatWaitClient:
         self._last_id = self.socket.read_int_line()
 
     def _send_message(self, message):
-        self.socket.send(Message.send(message))
+        self.socket.sendall(Message.send(message))
         id = self.socket.read_int_line()
         if id == self._last_id + 1:
             self._receive_queue.put(message)
@@ -139,7 +139,7 @@ class NanocatWaitClient:
             self._fetch_new_messages()
 
     def _stop_waiting(self):
-        self.socket.send(Message.stop)
+        self.socket.sendall(Message.stop)
 
     def send_message(self, message):
         message = f"{self.username}: {message}"
@@ -165,6 +165,6 @@ class NanocatWaitClient:
     def quit(self):
         self._save_message_log()
         try:
-            self.socket.send(Message.quit)
+            self.socket.sendall(Message.quit)
         except (ConnectionAbortedError, ConnectionResetError):
             pass  # Expected

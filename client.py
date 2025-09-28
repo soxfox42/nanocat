@@ -110,12 +110,12 @@ class NanocatClient:
                 self._send_message(message)
 
     def _poll(self):
-        self.socket.send(Message.poll(self._last_id))
+        self.socket.sendall(Message.poll(self._last_id))
         count = self.socket.read_int_line()
         return count != 0
 
     def _fetch_all_messages(self):
-        self.socket.send(Message.hist)
+        self.socket.sendall(Message.hist)
         count = self.socket.read_int_line()
         for _ in range(count):
             message = self.socket.read_line()
@@ -124,7 +124,7 @@ class NanocatClient:
         self._last_id = self.socket.read_int_line()
 
     def _fetch_new_messages(self):
-        self.socket.send(Message.skip(self._last_id))
+        self.socket.sendall(Message.skip(self._last_id))
         count = self.socket.read_int_line()
         for _ in range(count):
             message = self.socket.read_line()
@@ -133,7 +133,7 @@ class NanocatClient:
         self._last_id = self.socket.read_int_line()
 
     def _send_message(self, message):
-        self.socket.send(Message.send(message))
+        self.socket.sendall(Message.send(message))
         id = self.socket.read_int_line()
         if id == self._last_id + 1:
             self._receive_queue.put(message)
@@ -166,6 +166,6 @@ class NanocatClient:
     def quit(self):
         self._save_message_log()
         try:
-            self.socket.send(Message.quit)
+            self.socket.sendall(Message.quit)
         except (ConnectionAbortedError, ConnectionResetError):
             pass  # Expected
