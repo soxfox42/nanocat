@@ -49,6 +49,7 @@ class BufferedSocket(socket.socket):
 class NanocatWaitClient:
     def __init__(self, address, username):
         self.username = username
+        self._message_callback = None
 
         self._send_queue = queue.Queue()
         self._lock = threading.Lock()
