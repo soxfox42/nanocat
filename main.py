@@ -1,3 +1,4 @@
+import argparse
 from client import NanocatClient
 from pathlib import Path
 import re
@@ -41,7 +42,7 @@ def hsv_to_rgb(h, s, v):
 
 
 class NanocatFrame(wx.Frame):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, address, *args, **kwargs):
         super().__init__(title="Nanocat", size=(800, 600), *args, **kwargs)
         self.SetIcon(wx.Icon(str(bundle_dir / "icon.png")))
 
@@ -79,10 +80,7 @@ class NanocatFrame(wx.Frame):
         dialog.Destroy()
         self.SetTitle(f"Nanocat - {username}")
 
-        if len(sys.argv) >= 2:
-            self.client = NanocatClient(address=sys.argv[1], username=username)
-        else:
-            self.client = NanocatClient(username=username)
+        self.client = NanocatClient(address, username)
         for message in self.client.initial_messages[-200:]:
             self.add_message(message)
         wx.CallAfter(
@@ -177,8 +175,13 @@ class NanocatFrame(wx.Frame):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="nanocat", description="Nanochat client")
+    parser.add_argument("address", nargs="?", default="127.0.0.1")
+    parser.add_argument("port", nargs="?", default=44322)
+    args = parser.parse_args()
+
     app = wx.App()
-    frame = NanocatFrame(None)
+    frame = NanocatFrame(f"{args.address}:{args.port}", None)
     if frame.initialised:
         frame.Show()
         app.MainLoop()
