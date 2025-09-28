@@ -10,8 +10,6 @@ import wx.richtext
 from sixel import Sixel
 
 
-POLL_TIME_MS = 100
-
 SIXEL_REGEX = re.compile(r"\\\(([^)]+)\)")
 
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -92,21 +90,15 @@ class NanocatFrame(wx.Frame):
                 self.rich_text.CaretPosition, wx.WXK_PAGEDOWN
             )
         )
-
-        self.poll_timer = wx.Timer()
-        self.poll_timer.Bind(wx.EVT_TIMER, self.poll)
-        self.poll_timer.Start(POLL_TIME_MS)
+        self.client.on_message_received(
+            lambda message: wx.CallAfter(self.add_message, message)
+        )
 
         self.text_entry.SetFocus()
-
         self.initialised = True
 
     def focus_text_entry(self, _):
         self.text_entry.SetFocus()
-
-    def poll(self, _):
-        for message in self.client.receive_messages():
-            self.add_message(message)
 
     def get_nick_colour(self, nick):
         if nick not in self.nick_colours:
@@ -174,7 +166,6 @@ class NanocatFrame(wx.Frame):
 
     def quit(self, _):
         self.client.quit()
-        self.poll_timer.Stop()
         self.Destroy()
 
 

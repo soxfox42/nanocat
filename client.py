@@ -54,7 +54,6 @@ class NanocatClient:
         self.username = username
 
         self._send_queue = queue.Queue()
-        self._receive_queue = queue.Queue()
         self._lock = threading.RLock()
         self._send_thread = threading.Thread(target=self._run_send_thread, daemon=True)
         self._receive_thread = threading.Thread(
@@ -83,8 +82,6 @@ class NanocatClient:
             # No log, let's fetch the full history
             self._fetch_all_messages()
         self.initial_messages = self._message_log[:]
-        with self._receive_queue.mutex:
-            self._receive_queue.queue.clear()
 
     def _save_message_log(self):
         with open(self._log_filename, "w") as file:
@@ -119,7 +116,8 @@ class NanocatClient:
         count = self.socket.read_int_line()
         for _ in range(count):
             message = self.socket.read_line()
-            self._receive_queue.put(message)
+            if self._message_callback:
+                self._message_callback(message)
             self._message_log.append(message)
         self._last_id = self.socket.read_int_line()
 
@@ -128,7 +126,8 @@ class NanocatClient:
         count = self.socket.read_int_line()
         for _ in range(count):
             message = self.socket.read_line()
-            self._receive_queue.put(message)
+            if self._message_callback:
+                self._message_callback(message)
             self._message_log.append(message)
         self._last_id = self.socket.read_int_line()
 
@@ -136,7 +135,8 @@ class NanocatClient:
         self.socket.sendall(Message.send(message))
         id = self.socket.read_int_line()
         if id == self._last_id + 1:
-            self._receive_queue.put(message)
+            if self._message_callback:
+                self._message_callback(message)
             self._message_log.append(message)
             self._last_id = id
         else:
@@ -154,14 +154,8 @@ class NanocatClient:
         message = f"MOTD {action}"
         self._send_queue.put(message)
 
-    def receive_messages(self):
-        messages = []
-        while True:
-            try:
-                messages.append(self._receive_queue.get(block=False))
-            except queue.Empty:
-                break
-        return messages
+    def on_message_received(self, callback):
+        self._message_callback = callback
 
     def quit(self):
         self._save_message_log()
