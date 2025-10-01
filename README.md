@@ -1,5 +1,7 @@
 # Nanocat
 
+![Nanocat displaying a MOTD and three messages](screenshot.png)
+
 It's a [Nanochat](https://git.phial.org/d6/nanochat) client!
 
 ## Running
