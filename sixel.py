@@ -26,7 +26,6 @@ class Sixel:
         left = self.vborder(0, 1)
         right = self.vborder(self.width - 1, -1)
 
-        print(self.width, self.height)
         result = []
         for y in range(top, bottom + 1):
             start = y * self.width + left
@@ -35,7 +34,6 @@ class Sixel:
         self.pixels = result
         self.width = right - left + 1
         self.height = bottom - top + 1
-        print(self.width, self.height)
 
     def hborder(self, start, step):
         y = start
