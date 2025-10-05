@@ -171,7 +171,7 @@ class NanocatFrame(wx.Frame):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="nanocat", description="Nanochat client")
-    parser.add_argument("address", nargs="?", default="127.0.0.1")
+    parser.add_argument("address", nargs="?", default="vein.plastic-idolatry.com")
     parser.add_argument("port", nargs="?", default=44322)
     parser.add_argument("-w", "--wait", action="store_true", help="Use WAIT command")
     args = parser.parse_args()
