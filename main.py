@@ -3,7 +3,6 @@ from client import NanocatClient
 from pathlib import Path
 import re
 import sys
-from waitclient import NanocatWaitClient
 import wx
 import wx.richtext
 
@@ -41,7 +40,7 @@ def hsv_to_rgb(h, s, v):
 
 
 class NanocatFrame(wx.Frame):
-    def __init__(self, address, wait, *args, **kwargs):
+    def __init__(self, address, *args, **kwargs):
         super().__init__(title="Nanocat", size=(800, 600), *args, **kwargs)
         self.SetIcon(wx.Icon(str(bundle_dir / "icon.png")))
 
@@ -79,10 +78,7 @@ class NanocatFrame(wx.Frame):
         dialog.Destroy()
         self.SetTitle(f"Nanocat - {username}")
 
-        if wait:
-            self.client = NanocatWaitClient(address, username)
-        else:
-            self.client = NanocatClient(address, username)
+        self.client = NanocatClient(address, username)
         for message in self.client.initial_messages[-200:]:
             self.add_message(message)
         wx.CallAfter(
@@ -173,11 +169,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="nanocat", description="Nanochat client")
     parser.add_argument("address", nargs="?", default="vein.plastic-idolatry.com")
     parser.add_argument("port", nargs="?", default=44322)
-    parser.add_argument("-w", "--wait", action="store_true", help="Use WAIT command")
     args = parser.parse_args()
 
     app = wx.App()
-    frame = NanocatFrame(f"{args.address}:{args.port}", args.wait, None)
+    frame = NanocatFrame(f"{args.address}:{args.port}", None)
     if frame.initialised:
         frame.Show()
         app.MainLoop()
